@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 
+
 # Importing ML algorithm files
 from classification_ML_algorithms.decision_tree import decision_tree_ui
 from classification_ML_algorithms.gaussian__naive_bayes import gaussian_naive_bayes_ui
@@ -51,22 +52,39 @@ with tab1:
         # Load the dataset
         df = pd.read_csv(uploaded_file)
         st.write("Dataset Preview:")
-        st.write(df.head())
 
         # Drop any columns that have all missing values
         df.dropna(axis=1, how='all', inplace=True)
+        st.write(df.head())
 
-        # Display missing values
-        st.subheader("Missing Values")
-        missing_values = df.isnull().sum().reset_index()
-        missing_values.columns = ["Column", "Missing Count"]
-        missing_values["Missing Percentage"] = (missing_values["Missing Count"] / len(df)) * 100
-        st.write(missing_values)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.subheader("Missing Values Before Imputation")
+        with c2: 
+            st.subheader("Missing Values After Imputation")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            # Display missing values
+            missing_values = df.isnull().sum().reset_index()
+            missing_values.columns = ["Column", "Missing Count"]
+            missing_values["Missing Percentage"] = (missing_values["Missing Count"] / len(df)) * 100
+            st.write(missing_values)
 
         # Handle missing values using SimpleImputer with median strategy for numeric columns
         imputer = SimpleImputer(strategy='median')
         numeric_cols = df.select_dtypes(include=[np.number]).columns
         df[numeric_cols] = imputer.fit_transform(df[numeric_cols])
+
+        with c2:
+            # show missing values again for new dataset
+            missing_values = df.isnull().sum().reset_index()
+            missing_values.columns = ["Column", "Missing Count"]
+            missing_values["Missing Percentage"] = (missing_values["Missing Count"] / len(df)) * 100
+            st.write(missing_values)
+
+        st.subheader("Cleaned Dataset Preview:")
+        st.write(df.head())
 
         # Preprocess categorical columns
         for column in df.select_dtypes(include=['object']).columns:
@@ -74,6 +92,7 @@ with tab1:
             df[column] = le.fit_transform(df[column].astype(str))
 
         # Preprocess target variable based on task type
+        X, Y = None, None
         if st.session_state['task'] == 'Classification':
             if 'diagnosis' not in df.columns:
                 st.error("The dataset must contain a 'diagnosis' column for classification.")
@@ -95,18 +114,17 @@ with tab1:
                 # Ensure the target is discrete for classification tasks
                 if pd.isnull(Y).any() or not np.issubdtype(Y.dtype, np.integer):
                     st.error("The target variable for classification must be discrete (integer values) and contain no missing values. Please clean your data and try again.")
-        # elif st.session_state['task'] == 'Regression':
-        #     # Ensure 'pm2.5' column exists in the dataset
-        #     if 'pm2.5' not in df.columns:
-        #         st.error("The dataset must contain a 'pm2.5' column for regression.")
-        #     else:
-        #         # Preparing Data
-        #         X = df.drop(columns=['pm2.5']).values
-        #         Y = df['pm2.5'].values
+
+        elif st.session_state['task'] == 'Regression':
+            # Ensure 'pm2.5' column exists in the dataset
+            if 'pm2.5' not in df.columns:
+                st.error("The dataset must contain a 'pm2.5' column for regression.")
+            else:
+                # Preparing Data
+                X = df.drop(columns=['pm2.5']).values
+                Y = df['pm2.5'].values
         st.session_state['X'] = X
         st.session_state['Y'] = Y
-
-        
 
 
 # Machine Learning Models
