@@ -1,19 +1,27 @@
-def knn_ui(X_train, Y_train,X_test,Y_test):
-    import streamlit as st
-    from sklearn.neighbors import KNeighborsClassifier
+import streamlit as st
+from sklearn.neighbors import KNeighborsClassifier
 
-    st.subheader("K-Nearest Neighbors Hyperparameters")
-
-    n_neighbors = st.slider("Number of Neighbors", 1, 20, 5)
-    weights = st.selectbox("Weights", options=["uniform", "distance"])
-    algorithm = st.selectbox("Algorithm", options=["auto", "ball_tree", "kd_tree", "brute"])
-
+def knn_ui():
+    n_neighbors = st.slider("Number of Neighbors", 1, 20, 5, key="knn_n_neighbors")
+    weights = st.selectbox("Weights", options=["uniform", "distance"], key="knn_weights")
+    algorithm = st.selectbox("Algorithm", options=["auto", "ball_tree", "kd_tree", "brute"], key="knn_algorithm")
     model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=weights, algorithm=algorithm)
-    model.fit(X_train, Y_train)
-    accuracy = model.score(X_test, Y_test)
+    st.session_state["classifiers"]["K-Nearest Neighbors"] = model
+    st.write(model)
 
-    st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
-    return model
+# def knn_ui(X_train, Y_train,X_test,Y_test):
+#     st.subheader("K-Nearest Neighbors Hyperparameters")
+
+#     n_neighbors = st.slider("Number of Neighbors", 1, 20, 5)
+#     weights = st.selectbox("Weights", options=["uniform", "distance"])
+#     algorithm = st.selectbox("Algorithm", options=["auto", "ball_tree", "kd_tree", "brute"])
+
+#     model = KNeighborsClassifier(n_neighbors=n_neighbors, weights=weights, algorithm=algorithm)
+#     model.fit(X_train, Y_train)
+#     accuracy = model.score(X_test, Y_test)
+
+#     st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
+#     return model
 
 # import streamlit as st
 # from pandas import read_csv

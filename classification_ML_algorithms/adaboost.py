@@ -1,23 +1,31 @@
-def adaboost_ui(X_train, Y_train,X_test,Y_test,random_seed):
-    import streamlit as st
-    from sklearn.ensemble import AdaBoostClassifier
+import streamlit as st
+from sklearn.ensemble import AdaBoostClassifier
 
-    st.subheader("AdaBoost Hyperparameters")
+def adaboost_ui():
+    random_seed = st.slider("Random Seed", 1, 100, 7, key="adaboost_random_seed")
+    n_estimators = st.slider("Number of Estimators", 1, 100, 50, key="adaboost_n_estimators")
+    model = AdaBoostClassifier(n_estimators=n_estimators, random_state=random_seed)
+    st.session_state["classifiers"]["AdaBoost"] = model
+    st.write(model)
 
-    # Hyperparameters for AdaBoost
-    n_estimators = st.slider("Number of Estimators", 1, 100, 50)
 
-    # Split the dataset for classification
-    # Initialize AdaBoost classifier
-    model = AdaBoostClassifier(n_estimators=n_estimators, random_state=random_seed, algorithm="SAMME")
+# def adaboost_ui(X_train, Y_train,X_test,Y_test,random_seed):
+#     st.subheader("AdaBoost Hyperparameters")
 
-    # Train the model
-    model.fit(X_train, Y_train)
+#     # Hyperparameters for AdaBoost
+#     n_estimators = st.slider("Number of Estimators", 1, 100, 50)
 
-    # Evaluate classification accuracy
-    accuracy = model.score(X_test,Y_test)
-    st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
-    return model
+#     # Split the dataset for classification
+#     # Initialize AdaBoost classifier
+#     model = AdaBoostClassifier(n_estimators=n_estimators, random_state=random_seed, algorithm="SAMME")
+
+#     # Train the model
+#     model.fit(X_train, Y_train)
+
+#     # Evaluate classification accuracy
+#     accuracy = model.score(X_test,Y_test)
+#     st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
+#     return model
 
 
 

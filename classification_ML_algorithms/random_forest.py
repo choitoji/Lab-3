@@ -1,27 +1,37 @@
-def random_forest_ui(X_train, Y_train,X_test,Y_test,random_seed):
-    import streamlit as st
-    from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
+import streamlit as st
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 
-    st.subheader("Random Forest Hyperparameters")
+def random_forest_ui():
+    random_seed = st.slider("Random Seed", 1, 100, 7, key="random_forest_random_seed")
+    n_estimators = st.slider("Number of Estimators (Trees)", 10, 200, 100, key="random_forest_n_estimators")
+    max_depth = st.slider("Max Depth of Trees", 1, 50, None, key="random_forest_max_depth")  # Allows None for no limit
+    min_samples_split = st.slider("Min Samples to Split a Node", 2, 10, 2, key="random_forest_min_samples_split")
+    min_samples_leaf = st.slider("Min Samples in Leaf Node", 1, 10, 1, key="random_forest_min_samples_leaf")
+    model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf, random_state=random_seed)
+    st.session_state["classifiers"]["Random Forest"] = model
+    st.write(model)
 
-    n_estimators = st.slider("Number of Estimators (Trees)", 10, 200, 100)
-    max_depth = st.slider("Max Depth of Trees", 1, 50, None)
-    min_samples_split = st.slider("Min Samples to Split a Node", 2, 10, 2)
-    min_samples_leaf = st.slider("Min Samples in Leaf Node", 1, 10, 1)
+# def random_forest_ui(X_train, Y_train,X_test,Y_test,random_seed):
+#     st.subheader("Random Forest Hyperparameters")
 
-    model = RandomForestClassifier(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        min_samples_split=min_samples_split,
-        min_samples_leaf=min_samples_leaf,
-        random_state=random_seed
-    )
-    model.fit(X_train, Y_train)
-    accuracy = model.score(X_test, Y_test)
+#     n_estimators = st.slider("Number of Estimators (Trees)", 10, 200, 100)
+#     max_depth = st.slider("Max Depth of Trees", 1, 50, None)
+#     min_samples_split = st.slider("Min Samples to Split a Node", 2, 10, 2)
+#     min_samples_leaf = st.slider("Min Samples in Leaf Node", 1, 10, 1)
 
-    st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
-    return model
+#     model = RandomForestClassifier(
+#         n_estimators=n_estimators,
+#         max_depth=max_depth,
+#         min_samples_split=min_samples_split,
+#         min_samples_leaf=min_samples_leaf,
+#         random_state=random_seed
+#     )
+#     model.fit(X_train, Y_train)
+#     accuracy = model.score(X_test, Y_test)
+
+#     st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
+#     return model
 
 
 # import streamlit as st

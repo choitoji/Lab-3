@@ -25,6 +25,18 @@ from classification_ML_algorithms.perceptron import perceptron_ui
 from classification_ML_algorithms.random_forest import random_forest_ui
 from classification_ML_algorithms.svm import svm_ui
 
+from regression_ML_algorithms.adaboost_regressor import adaboost_regressor_ui
+from regression_ML_algorithms.decision_tree_regressor import decision_tree_regressor_ui
+from regression_ML_algorithms.elastic_net import elastic_net_ui
+from regression_ML_algorithms.knn_regressor import knn_regressor_ui
+from regression_ML_algorithms.lasso import lasso_ui
+from regression_ML_algorithms.linear_regression import linear_regression_ui
+from regression_ML_algorithms.mlp_regressor import mlp_regressor_ui
+from regression_ML_algorithms.random_forest_regressor import random_forest_regressor_ui
+from regression_ML_algorithms.ridge import ridge_ui
+from regression_ML_algorithms.support_vector_regressor import support_vector_regressor_ui
+
+
 # Title of the app
 st.title('Lab 3: Comparison of Different Machine Learning Algorithms for Model Selection')
 
@@ -40,6 +52,10 @@ if "X" not in st.session_state:
     st.session_state["X"] = None
 if "Y" not in st.session_state:
     st.session_state["Y"] = None
+if "classifiers" not in st.session_state:
+    st.session_state["classifiers"] = {}
+if "regressors" not in st.session_state:
+    st.session_state["regressors"] = {}
 
 # Tabs for separating functionalities
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -197,146 +213,184 @@ with tab2:
 # Machine Learning Models
 with tab3:
     st.header("Machine Learning Models")
-
+    if st.session_state.X is None or st.session_state.Y is None:
+        st.warning("Please upload a dataset in the 'Dataset Overview' tab.")
+    elif st.session_state["cv"] is None:
+        st.warning("Please apply a resampling technique in the 'Resampling Techniques' tab.")
+    else:
+        if st.session_state['task'] == 'Classification':
+            model_ui = {
+                "Decision Tree": decision_tree_ui,
+                "Gaussian Naive Bayes": gaussian_naive_bayes_ui,
+                "AdaBoost": adaboost_ui,
+                "K-Nearest Neighbors": knn_ui,
+                "Logistic Regression": logistic_regression_ui,
+                "MLP Classifier": mlp_classifier_ui,
+                "Perceptron": perceptron_ui,
+                "Random Forest": random_forest_ui,
+                "Support Vector Machine": svm_ui
+            }
+        else:
+            model_ui = {
+                "Decision Tree Regressor": decision_tree_regressor_ui,
+                "Elastic Net": elastic_net_ui,
+                "AdaBoost Regressor": adaboost_regressor_ui,
+                "K-Nearest Neighbors": knn_regressor_ui,
+                "Lasso": lasso_ui,
+                "Ridge": ridge_ui,
+                "Linear Regression": linear_regression_ui,
+                "MLP Regressor": mlp_regressor_ui,
+                "Random Forest Regressor": random_forest_regressor_ui,
+                "Support Vector Regressor (SVR)": support_vector_regressor_ui
+            }
+        # with st.form("model_form"):
+        c1, c2 = st.columns(2)
+        for i, (model_name, model_func) in enumerate(model_ui.items()):
+            if i % 2 == 0:
+                with c1.expander(model_name):
+                    model_func()
+            else:
+                with c2.expander(model_name):
+                    model_func()
 
 
 # Visualizations
-with tab4:
-    st.header("Visualizations")
-    st.write("Generate plots and insights here.")
+# with tab4:
+#     st.header("Visualizations")
+#     st.write("Generate plots and insights here.")
 
-    if st.session_state['task'] == 'Classification':
-        if 'model' not in st.session_state or 'X' not in st.session_state or 'Y' not in st.session_state:
-            st.warning("Please train a model and split the data in the 'ML Models' tab.")
-        else:
-            X = st.session_state['X']
-            Y = st.session_state['Y']
-            model = st.session_state['model']
+#     if st.session_state['task'] == 'Classification':
+#         if 'model' not in st.session_state or 'X' not in st.session_state or 'Y' not in st.session_state:
+#             st.warning("Please train a model and split the data in the 'ML Models' tab.")
+#         else:
+#             X = st.session_state['X']
+#             Y = st.session_state['Y']
+#             model = st.session_state['model']
 
-            # Generate predictions
-            predictions = model.predict(X)
+#             # Generate predictions
+#             predictions = model.predict(X)
 
-            # Retrieve label encoder and decode labels
-            if 'label_encoder' in st.session_state:
-                le = st.session_state['label_encoder']
-                decoded_predictions = le.inverse_transform(predictions)  # Decode predictions
-                decoded_Y = le.inverse_transform(Y)  # Decode true labels
-                class_labels = le.classes_  # ['B', 'M']
-            else:
-                # Fallback if LabelEncoder is not found
-                decoded_predictions = predictions
-                decoded_Y = Y
-                class_labels = np.unique(Y)
+#             # Retrieve label encoder and decode labels
+#             if 'label_encoder' in st.session_state:
+#                 le = st.session_state['label_encoder']
+#                 decoded_predictions = le.inverse_transform(predictions)  # Decode predictions
+#                 decoded_Y = le.inverse_transform(Y)  # Decode true labels
+#                 class_labels = le.classes_  # ['B', 'M']
+#             else:
+#                 # Fallback if LabelEncoder is not found
+#                 decoded_predictions = predictions
+#                 decoded_Y = Y
+#                 class_labels = np.unique(Y)
 
-            # Classification Metrics
-            st.subheader("Classification Metrics")
-            accuracy = accuracy_score(decoded_Y, decoded_predictions)
-            log_loss_value = log_loss(decoded_Y, model.predict_proba(X))
-            st.write(f"Classification Accuracy: {accuracy * 100:.2f}%")
-            st.write(f"Logarithmic Loss: {log_loss_value:.2f}")
+#             # Classification Metrics
+#             st.subheader("Classification Metrics")
+#             accuracy = accuracy_score(decoded_Y, decoded_predictions)
+#             log_loss_value = log_loss(decoded_Y, model.predict_proba(X))
+#             st.write(f"Classification Accuracy: {accuracy * 100:.2f}%")
+#             st.write(f"Logarithmic Loss: {log_loss_value:.2f}")
 
-            # Confusion Matrix
-            st.subheader("Confusion Matrix")
-            confusion_mat = confusion_matrix(decoded_Y, decoded_predictions, labels=class_labels)
-            confusion_df = pd.DataFrame(
-                confusion_mat,
-                index=[f"True {label}" for label in class_labels],
-                columns=[f"Pred {label}" for label in class_labels]
-            )
-            st.write(confusion_df)
+#             # Confusion Matrix
+#             st.subheader("Confusion Matrix")
+#             confusion_mat = confusion_matrix(decoded_Y, decoded_predictions, labels=class_labels)
+#             confusion_df = pd.DataFrame(
+#                 confusion_mat,
+#                 index=[f"True {label}" for label in class_labels],
+#                 columns=[f"Pred {label}" for label in class_labels]
+#             )
+#             st.write(confusion_df)
 
-            # Classification Report in Tabular Form
-            st.subheader("Classification Report")
-            report = classification_report(
-                decoded_Y, decoded_predictions, output_dict=True, target_names=class_labels
-            )
-            report_df = pd.DataFrame(report).transpose()
+#             # Classification Report in Tabular Form
+#             st.subheader("Classification Report")
+#             report = classification_report(
+#                 decoded_Y, decoded_predictions, output_dict=True, target_names=class_labels
+#             )
+#             report_df = pd.DataFrame(report).transpose()
 
-            # Ensure all numeric columns are of type float for compatibility
-            numeric_cols = report_df.select_dtypes(include=['number']).columns
-            report_df[numeric_cols] = report_df[numeric_cols].astype(float)
+#             # Ensure all numeric columns are of type float for compatibility
+#             numeric_cols = report_df.select_dtypes(include=['number']).columns
+#             report_df[numeric_cols] = report_df[numeric_cols].astype(float)
 
-            # Ensure all non-numeric columns are of type string for compatibility
-            non_numeric_cols = report_df.select_dtypes(exclude=['number']).columns
-            report_df[non_numeric_cols] = report_df[non_numeric_cols].astype(str)
+#             # Ensure all non-numeric columns are of type string for compatibility
+#             non_numeric_cols = report_df.select_dtypes(exclude=['number']).columns
+#             report_df[non_numeric_cols] = report_df[non_numeric_cols].astype(str)
 
-            # Reset index to avoid serialization issues
-            report_df.reset_index(inplace=True)
+#             # Reset index to avoid serialization issues
+#             report_df.reset_index(inplace=True)
 
-            # Display the DataFrame in Streamlit
-            st.dataframe(report_df)
+#             # Display the DataFrame in Streamlit
+#             st.dataframe(report_df)
 
-            # ROC Curve for binary classification
-            if len(np.unique(Y)) == 2:  # Ensure binary classification for ROC AUC
-                st.subheader("Receiver Operating Characteristic (ROC) Curve")
-                roc_auc = roc_auc_score(Y, model.predict_proba(X)[:, 1])
-                st.write(f"Area Under ROC Curve (AUC): {roc_auc:.2f}")
-                fpr, tpr, _ = roc_curve(Y, model.predict_proba(X)[:, 1])
-                fig, ax = plt.subplots()
-                ax.plot(fpr, tpr, label='ROC Curve')
-                ax.plot([0, 1], [0, 1], 'k--', label='Random Guess')
-                ax.set_xlabel('False Positive Rate')
-                ax.set_ylabel('True Positive Rate')
-                ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-                ax.legend()
-                st.pyplot(fig)
+#             # ROC Curve for binary classification
+#             if len(np.unique(Y)) == 2:  # Ensure binary classification for ROC AUC
+#                 st.subheader("Receiver Operating Characteristic (ROC) Curve")
+#                 roc_auc = roc_auc_score(Y, model.predict_proba(X)[:, 1])
+#                 st.write(f"Area Under ROC Curve (AUC): {roc_auc:.2f}")
+#                 fpr, tpr, _ = roc_curve(Y, model.predict_proba(X)[:, 1])
+#                 fig, ax = plt.subplots()
+#                 ax.plot(fpr, tpr, label='ROC Curve')
+#                 ax.plot([0, 1], [0, 1], 'k--', label='Random Guess')
+#                 ax.set_xlabel('False Positive Rate')
+#                 ax.set_ylabel('True Positive Rate')
+#                 ax.set_title('Receiver Operating Characteristic (ROC) Curve')
+#                 ax.legend()
+#                 st.pyplot(fig)
 
 
 # Model Comparison
-with tab5:
-    st.header("Model Comparison")
-    st.write("Compare model performances here.")
+# with tab5:
+#     st.header("Model Comparison")
+#     st.write("Compare model performances here.")
 
-with tab6:
-    st.header("Prediction")
-    st.write("Predict using trained models.")
+# with tab6:
+#     st.header("Prediction")
+#     st.write("Predict using trained models.")
 
-    st.subheader("Upload a Saved Model for Prediction")
-    uploaded_model = st.file_uploader("Upload your model (joblib format)", type=["joblib"], key="model_upload")
+#     st.subheader("Upload a Saved Model for Prediction")
+#     uploaded_model = st.file_uploader("Upload your model (joblib format)", type=["joblib"], key="model_upload")
 
-    if uploaded_model is not None:
-        model = joblib.load(uploaded_model)
-        st.write("Model Loaded Successfully!")
+#     if uploaded_model is not None:
+#         model = joblib.load(uploaded_model)
+#         st.write("Model Loaded Successfully!")
 
-        # Predict using entire dataset (X)
-        if uploaded_file is not None:
-            # Input fields for breast cancer prediction
-            st.subheader("Input Sample Data for Breast Cancer Prediction")
+#         # Predict using entire dataset (X)
+#         if uploaded_file is not None:
+#             # Input fields for breast cancer prediction
+#             st.subheader("Input Sample Data for Breast Cancer Prediction")
 
-            # Feature input fields
-            radius_mean = st.number_input("Radius Mean", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
-            texture_mean = st.number_input("Texture Mean", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
-            perimeter_mean = st.number_input("Perimeter Mean", min_value=0.0, max_value=1000.0, value=0.0, step=0.1)
-            area_mean = st.number_input("Area Mean", min_value=0.0, max_value=5000.0, value=0.0, step=0.1)
-            smoothness_mean = st.number_input("Smoothness Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-            compactness_mean = st.number_input("Compactness Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-            concavity_mean = st.number_input("Concavity Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-            concave_points_mean = st.number_input("Concave Points Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-            symmetry_mean = st.number_input("Symmetry Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-            fractal_dimension_mean = st.number_input("Fractal Dimension Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
+#             # Feature input fields
+#             radius_mean = st.number_input("Radius Mean", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+#             texture_mean = st.number_input("Texture Mean", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+#             perimeter_mean = st.number_input("Perimeter Mean", min_value=0.0, max_value=1000.0, value=0.0, step=0.1)
+#             area_mean = st.number_input("Area Mean", min_value=0.0, max_value=5000.0, value=0.0, step=0.1)
+#             smoothness_mean = st.number_input("Smoothness Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
+#             compactness_mean = st.number_input("Compactness Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
+#             concavity_mean = st.number_input("Concavity Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
+#             concave_points_mean = st.number_input("Concave Points Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
+#             symmetry_mean = st.number_input("Symmetry Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
+#             fractal_dimension_mean = st.number_input("Fractal Dimension Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
 
-            # Combine input features into a single array
-            input_data = np.array([[
-                radius_mean, texture_mean, perimeter_mean, area_mean, smoothness_mean,
-                compactness_mean, concavity_mean, concave_points_mean, symmetry_mean,
-                fractal_dimension_mean
-            ]])
+#             # Combine input features into a single array
+#             input_data = np.array([[
+#                 radius_mean, texture_mean, perimeter_mean, area_mean, smoothness_mean,
+#                 compactness_mean, concavity_mean, concave_points_mean, symmetry_mean,
+#                 fractal_dimension_mean
+#             ]])
 
-            # Predict using the trained model
-            if st.button("Predict"):
-                if 'model' in st.session_state:
-                    model = st.session_state['model']
-                    prediction = model.predict(input_data)
+#             # Predict using the trained model
+#             if st.button("Predict"):
+#                 if 'model' in st.session_state:
+#                     model = st.session_state['model']
+#                     prediction = model.predict(input_data)
                     
-                    # Decode prediction if label encoder is available
-                    if 'label_encoder' in st.session_state:
-                        le = st.session_state['label_encoder']
-                        decoded_prediction = le.inverse_transform(prediction)[0]  # Malignant (M) or Benign (B)
-                    else:
-                        decoded_prediction = prediction[0]  # Fallback to numeric
+#                     # Decode prediction if label encoder is available
+#                     if 'label_encoder' in st.session_state:
+#                         le = st.session_state['label_encoder']
+#                         decoded_prediction = le.inverse_transform(prediction)[0]  # Malignant (M) or Benign (B)
+#                     else:
+#                         decoded_prediction = prediction[0]  # Fallback to numeric
 
-                    st.subheader("Prediction Result")
-                    st.write(f"The predicted diagnosis is: {decoded_prediction}")
-                else:
-                    st.warning("Please train a model in the 'ML Models' tab first.")
+#                     st.subheader("Prediction Result")
+#                     st.write(f"The predicted diagnosis is: {decoded_prediction}")
+#                 else:
+#                     st.warning("Please train a model in the 'ML Models' tab first.")
 

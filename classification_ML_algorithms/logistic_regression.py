@@ -1,20 +1,29 @@
-def logistic_regression_ui(X_train, Y_train,X_test,Y_test):
-    import streamlit as st
-    from sklearn.linear_model import LogisticRegression
+import streamlit as st
+from sklearn.linear_model import LogisticRegression
 
-    st.subheader("Logistic Regression Hyperparameters")
+def logistic_regression_ui():
+    random_seed = st.slider("Random Seed", 1, 100, 7, key="logistic_random_seed")
+    max_iter = st.slider("Max Iterations", 100, 500, 200, key="logistic_max_iter")
+    solver = st.selectbox("Solver", options=["lbfgs", "liblinear", "sag", "saga", "newton-cg"], key="logistic_solver")
+    C = st.number_input("Inverse of Regularization Strength", min_value=0.01, max_value=10.0, value=1.0, key="logistic_C")
+    model = LogisticRegression(max_iter=max_iter, solver=solver, C=C, random_state=random_seed)
+    st.session_state["classifiers"]["Logistic Regression"] = model
+    st.write(model)
 
-    max_iter = st.slider("Max Iterations", 100, 500, 200)
-    solver = st.selectbox("Solver", options=["lbfgs", "liblinear", "sag", "saga", "newton-cg"])
-    C = st.number_input("Inverse of Regularization Strength", min_value=0.01, max_value=10.0, value=1.0)
+# def logistic_regression_ui(X_train, Y_train,X_test,Y_test):
+#     st.subheader("Logistic Regression Hyperparameters")
+
+#     max_iter = st.slider("Max Iterations", 100, 500, 200)
+#     solver = st.selectbox("Solver", options=["lbfgs", "liblinear", "sag", "saga", "newton-cg"])
+#     C = st.number_input("Inverse of Regularization Strength", min_value=0.01, max_value=10.0, value=1.0)
 
 
-    model = LogisticRegression(max_iter=max_iter, solver=solver, C=C)
-    model.fit(X_train, Y_train)
-    accuracy = model.score(X_test, Y_test)
+#     model = LogisticRegression(max_iter=max_iter, solver=solver, C=C)
+#     model.fit(X_train, Y_train)
+#     accuracy = model.score(X_test, Y_test)
 
-    st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
-    return model
+#     st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
+#     return model
 
 # import streamlit as st
 # from pandas import read_csv

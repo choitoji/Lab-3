@@ -1,21 +1,31 @@
-def mlp_classifier_ui(X_train, Y_train,X_test,Y_test,random_seed):
-    import streamlit as st
-    from sklearn.neural_network import MLPClassifier
+import streamlit as st
+from sklearn.neural_network import MLPClassifier
 
-    st.subheader("MLP Classifier Hyperparameters")
-
-    hidden_layer_sizes = st.text_input("Hidden Layer Sizes (e.g., 64,32)", "64,32")
-    activation = st.selectbox("Activation Function", options=["identity", "logistic", "tanh", "relu"])
-    max_iter = st.slider("Max Iterations", 100, 500, 200)
-
+def mlp_classifier_ui():
+    random_seed = st.slider("Random Seed", 1, 100, 7, key="mlp_classifier_random_seed")
+    hidden_layer_sizes = st.text_input("Hidden Layer Sizes (e.g., 65,32)", "65,32", key="mlp_classifier_hidden_layer_sizes")
+    activation = st.selectbox("Activation Function", options=["identity", "logistic", "tanh", "relu"], key="mlp_classifier_activation")
+    max_iter = st.slider("Max Iterations", 100, 500, 200, key="mlp_classifier_max_iter")
     hidden_layer_sizes = tuple(map(int, hidden_layer_sizes.split(',')))
-
     model = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=max_iter, random_state=random_seed)
-    model.fit(X_train, Y_train)
-    accuracy = model.score(X_test, Y_test)
+    st.session_state["classifiers"]["MLP Classifier"] = model
+    st.write(model)
 
-    st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
-    return model
+# def mlp_classifier_ui(X_train, Y_train,X_test,Y_test,random_seed):
+#     st.subheader("MLP Classifier Hyperparameters")
+
+#     hidden_layer_sizes = st.text_input("Hidden Layer Sizes (e.g., 64,32)", "64,32")
+#     activation = st.selectbox("Activation Function", options=["identity", "logistic", "tanh", "relu"])
+#     max_iter = st.slider("Max Iterations", 100, 500, 200)
+
+#     hidden_layer_sizes = tuple(map(int, hidden_layer_sizes.split(',')))
+
+#     model = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=max_iter, random_state=random_seed)
+#     model.fit(X_train, Y_train)
+#     accuracy = model.score(X_test, Y_test)
+
+#     st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
+#     return model
 
 # import streamlit as st
 # from pandas import read_csv

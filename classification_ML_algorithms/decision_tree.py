@@ -1,26 +1,34 @@
-def decision_tree_ui(X_train, Y_train,X_test,Y_test,random_seed):
-    import streamlit as st
-    from sklearn.tree import DecisionTreeClassifier
+import streamlit as st
+from sklearn.tree import DecisionTreeClassifier
 
-    st.subheader("Decision Tree Hyperparameters")
+def decision_tree_ui():
+    max_depth = st.slider("Max Depth", 1, 20, 5, key="decision_tree_max_depth")
+    min_samples_split = st.slider("Min Samples Split", 2, 10, 2, key="decision_tree_min_samples_split")
+    min_samples_leaf = st.slider("Min Samples Leaf", 1, 10, 1, key="decision_tree_min_samples_leaf")
+    model = DecisionTreeClassifier(max_depth=max_depth, min_samples_split=min_samples_split, min_samples_leaf=min_samples_leaf)
+    st.session_state["classifiers"]["Decision Tree"] = model
+    st.write(model)
 
-    max_depth = st.slider("Max Depth", 1, 20, 5)
-    min_samples_split = st.slider("Min Samples Split", 2, 10, 2)
-    min_samples_leaf = st.slider("Min Samples Leaf", 1, 10, 1)
+# def decision_tree_ui(X_train, Y_train,X_test,Y_test,random_seed):
+#     st.subheader("Decision Tree Hyperparameters")
+
+#     max_depth = st.slider("Max Depth", 1, 20, 5)
+#     min_samples_split = st.slider("Min Samples Split", 2, 10, 2)
+#     min_samples_leaf = st.slider("Min Samples Leaf", 1, 10, 1)
 
 
-    model = DecisionTreeClassifier(
-        max_depth=max_depth,
-        min_samples_split=min_samples_split,
-        min_samples_leaf=min_samples_leaf,
-        random_state=random_seed
-    )
+#     model = DecisionTreeClassifier(
+#         max_depth=max_depth,
+#         min_samples_split=min_samples_split,
+#         min_samples_leaf=min_samples_leaf,
+#         random_state=random_seed
+#     )
 
-    model.fit(X_train, Y_train)
-    accuracy = model.score(X_test, Y_test)
+#     model.fit(X_train, Y_train)
+#     accuracy = model.score(X_test, Y_test)
 
-    st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
-    return model
+#     st.write(f"Accuracy: {accuracy * 100.0:.3f}%")
+#     return model
 
 # import streamlit as st
 # from pandas import read_csv
