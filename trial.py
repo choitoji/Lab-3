@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-from sklearn.model_selection import KFold, LeaveOneOut, train_test_split, cross_val_score
+from sklearn.model_selection import KFold, LeaveOneOut, train_test_split, cross_val_score, PredefinedSplit, ShuffleSplit
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, accuracy_score, log_loss, confusion_matrix, classification_report, roc_auc_score, roc_curve
 from sklearn.preprocessing import LabelEncoder
@@ -34,11 +34,18 @@ uploaded_file = st.file_uploader("Upload CSV file here", type="csv")
 # Select task type
 st.session_state['task'] = st.selectbox('Select Task', ['Classification', 'Regression'])
 
+if "cv" not in st.session_state:
+    st.session_state["cv"] = None
+if "X" not in st.session_state:
+    st.session_state["X"] = None
+if "Y" not in st.session_state:
+    st.session_state["Y"] = None
+
 # Tabs for separating functionalities
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Dataset Overview",
-    "ML Models",
-    "Resampling and Training",
+    "Resampling Techniques",
+    "ML Model Training",
     "Visualizations",
     "Model Comparison",
     "Prediction"
@@ -92,7 +99,6 @@ with tab1:
             df[column] = le.fit_transform(df[column].astype(str))
 
         # Preprocess target variable based on task type
-        X, Y = None, None
         if st.session_state['task'] == 'Classification':
             if 'diagnosis' not in df.columns:
                 st.error("The dataset must contain a 'diagnosis' column for classification.")
@@ -110,6 +116,8 @@ with tab1:
                             
                 X = df.drop(columns=['diagnosis']).values
                 Y = df['diagnosis'].values
+                st.session_state['X'] = X
+                st.session_state['Y'] = Y
 
                 # Ensure the target is discrete for classification tasks
                 if pd.isnull(Y).any() or not np.issubdtype(Y.dtype, np.integer):
@@ -123,139 +131,72 @@ with tab1:
                 # Preparing Data
                 X = df.drop(columns=['pm2.5']).values
                 Y = df['pm2.5'].values
-        st.session_state['X'] = X
-        st.session_state['Y'] = Y
-
-
-# Machine Learning Models
-with tab2:
-    st.header("Machine Learning Models")
-
-    if st.session_state['task'] == 'Classification':
-        # Ensure X and Y are available in session state
-        if 'X' not in st.session_state or 'Y' not in st.session_state:
-            st.warning("Please upload a dataset in the 'Dataset Overview' tab.")
-        else:
-            X = st.session_state['X']
-            Y = st.session_state['Y']
-
-            # Dropdown to select ML Algorithm
-            ml_algorithm = st.selectbox("Select Machine Learning Algorithm", [
-                "Decision Tree",
-                "Gaussian Naive Bayes",
-                "AdaBoost",
-                "K-Nearest Neighbors",
-                "Logistic Regression",
-                "MLP Classifier",
-                "Perceptron",
-                "Random Forest",
-                "Support Vector Machine (SVM)"
-            ])
-
-            # Split dataset into training and testing sets
-            test_size = st.slider("Test Size (fraction)", 0.1, 0.5, 0.2)
-            random_seed = st.slider("Random Seed", 1, 100, 42)
-            X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=test_size, random_state=random_seed)
-
-            # Save split data in session state
-            st.session_state['X_train'] = X_train
-            st.session_state['X_test'] = X_test
-            st.session_state['Y_train'] = Y_train
-            st.session_state['Y_test'] = Y_test
-
-            # Train and save the selected model
-            model = None
-            if ml_algorithm == "Decision Tree":
-                model = decision_tree_ui(X_train, Y_train,X_test,Y_test,random_seed)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "Gaussian Naive Bayes":
-                model = gaussian_naive_bayes_ui(X_train, Y_train,X_test,Y_test)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "AdaBoost":
-                model = adaboost_ui(X_train, Y_train,X_test,Y_test,random_seed)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "K-Nearest Neighbors":
-                model = knn_ui(X_train, Y_train,X_test,Y_test)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "Logistic Regression":
-                model = logistic_regression_ui(X_train, Y_train,X_test,Y_test)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "MLP Classifier":
-                model = mlp_classifier_ui(X_train, Y_train,X_test,Y_test,random_seed)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "Perceptron":
-                model = perceptron_ui(X_train, Y_train,X_test,Y_test,random_seed)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "Random Forest":
-                model = random_forest_ui(X_train, Y_train,X_test,Y_test,random_seed)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-            elif ml_algorithm == "Support Vector Machine (SVM)":
-                model = svm_ui(X_train, Y_train,X_test,Y_test,random_seed)
-                st.session_state['model'] = model
-                st.success("Model trained and saved successfully.")
-
-            
+                st.session_state['X'] = X
+                st.session_state['Y'] = Y
 
 
 # Resampling and Training
+with tab2:
+    st.header("Resampling Techniques")
+    if st.session_state.X is None or st.session_state.Y is None:
+        st.warning("Please upload a dataset in the 'Dataset Overview' tab.")
+    else:
+        st.selectbox("Select Resampling Technique", [
+            "Train-Test Split",
+            "K-Fold Cross Validation",
+            "Leave-One-Out Cross Validation",
+            "Repeated Random Sampling",
+        ], key="chosen_cv")
+
+        with st.form("resampling_form"):
+            cv_object = None
+            cv = st.session_state["chosen_cv"]
+            if cv == "Train-Test Split":
+                st.write("Train-Test Split")
+                test_size = st.slider("Test Size (fraction)", 0.1, 0.5, 0.2)
+                random_seed = st.slider("Random Seed", 1, 100, 42)
+
+                X_train, X_test, Y_train, Y_test = train_test_split(st.session_state['X'], st.session_state['Y'], test_size=test_size, random_state=random_seed)
+                predefined_split = PredefinedSplit(test_fold=[-1 if i in X_train else 0 for i in range(len(X))])
+                cv_object = predefined_split
+
+            elif cv == "K-Fold Cross Validation":
+                st.write("K-Fold Cross Validation")
+                k_folds = st.slider("Number of Folds", 2, 10, 5)
+                shuffle = st.checkbox("Shuffle Data", value=True)
+                random_seed = st.slider("Random Seed", 1, 100, 42)
+                kfold = KFold(n_splits=k_folds, shuffle=shuffle, random_state=random_seed if shuffle else None)
+                cv_object = kfold
+
+            elif cv == "Leave-One-Out Cross Validation":
+                st.write("Leave-One-Out Cross Validation")
+                loo = LeaveOneOut()
+                cv_object = loo
+
+            elif cv == "Repeated Random Sampling":
+                st.write("Repeated Random Sampling")
+                n_splits = st.slider("Number of Splits", 2, 10, 5)
+                test_size = st.slider("Test Size (fraction)", 0.1, 0.5, 0.2)
+                random_seed = st.slider("Random Seed", 1, 100, 42)
+                shuffle_split = ShuffleSplit(n_splits=n_splits, test_size=test_size, random_state=random_seed)
+                cv_object = shuffle_split
+
+            else:
+                st.warning("Please select a resampling technique to continue.")
+
+            if cv_object is not None:
+                # button = st.button("Apply Resampling Technique")
+                button = st.form_submit_button("Apply Resampling Technique")
+                if button:
+                    st.session_state["cv"] = cv_object
+                    st.success("Resampling technique applied successfully.")
+
+        st.write("Chosen Sampling Technique:")
+        st.write(st.session_state["cv"])
+
+# Machine Learning Models
 with tab3:
-    st.header("Resampling and Training")
-
-    if st.session_state['task'] == 'Classification':
-        if 'X_test' not in st.session_state or 'Y_test' not in st.session_state or 'model' not in st.session_state:
-            st.warning("Please upload a dataset, select a task, and train a model in the 'ML Models' tab.")
-        else:
-            X_train = st.session_state['X_test']
-            Y_train = st.session_state['Y_test']
-            model = st.session_state['model']
-
-            st.subheader("Classification Resampling Techniques")
-
-            # Dropdown to select resampling technique
-            resampling_techniques = st.selectbox(
-                "Select Resampling Technique",
-                ["K-Fold Cross Validation", "Leave-One-Out Cross Validation"]
-            )
-
-            # Perform the selected resampling technique
-            if resampling_techniques == "K-Fold Cross Validation":
-                num_folds = st.slider("Select number of folds for K-Fold Cross Validation:", 2, 10, 5)
-                kfold = KFold(n_splits=num_folds, shuffle=True, random_state=1)
-                results = cross_val_score(model, X_train, Y_train, cv=kfold)
-                st.write(f"Accuracy: {results.mean() * 100:.2f}%")
-                st.write(f"Standard Deviation: {results.std() * 100:.2f}%")
-
-            elif resampling_techniques == "Leave-One-Out Cross Validation":
-                loocv = LeaveOneOut()
-                results = cross_val_score(model, X_train, Y_train, cv=loocv)
-                st.write(f"Accuracy: {results.mean() * 100:.2f}%")
-                st.write(f"Standard Deviation: {results.std() * 100:.2f}%")
-            
-            if st.button("Train Model"):
-                # Train the model only if no missing values exist
-                if not pd.isnull(Y).any():
-                    model.fit(X, Y)
-                    model_filename = f"{st.session_state['task'].lower()}_{ml_algorithm.replace(' ', '_').replace('/', '_').replace('(', '').replace(')', '').lower()}.joblib"
-
-                    try:
-                        joblib.dump(model, model_filename)
-                        st.success(f"Model saved as {model_filename}")
-
-                        # Option to download the model
-                        with open(model_filename, "rb") as f:
-                            st.download_button("Download Trained Model", f, file_name=model_filename)
-                    except Exception as e:
-                        st.error(f"An error occurred while saving the model: {e}")
-                else:
-                    st.error("Cannot train model with missing values in the target variable.")
+    st.header("Machine Learning Models")
 
 
 
