@@ -56,6 +56,10 @@ if "classifiers" not in st.session_state:
     st.session_state["classifiers"] = {}
 if "regressors" not in st.session_state:
     st.session_state["regressors"] = {}
+if "classif_scores" not in st.session_state:
+    st.session_state["classif_scores"] = {}
+if "regress_scores" not in st.session_state:
+    st.session_state["regress_scores"] = {}
 
 # Tabs for separating functionalities
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -74,6 +78,12 @@ with tab1:
     if uploaded_file is not None:
         # Load the dataset
         df = pd.read_csv(uploaded_file)
+
+        # development purposes only, remove later ----------------
+        df = df.sample(frac=1).reset_index(drop=True)
+        df = df.head(100)
+        # --------------------------------------------------------
+
         st.write("Dataset Preview:")
 
         # Drop any columns that have all missing values
@@ -235,7 +245,7 @@ with tab3:
                 "Decision Tree Regressor": decision_tree_regressor_ui,
                 "Elastic Net": elastic_net_ui,
                 "AdaBoost Regressor": adaboost_regressor_ui,
-                "K-Nearest Neighbors": knn_regressor_ui,
+                "KNN Regressor": knn_regressor_ui,
                 "Lasso": lasso_ui,
                 "Ridge": ridge_ui,
                 "Linear Regression": linear_regression_ui,
@@ -243,20 +253,56 @@ with tab3:
                 "Random Forest Regressor": random_forest_regressor_ui,
                 "Support Vector Regressor (SVR)": support_vector_regressor_ui
             }
-        # with st.form("model_form"):
-        c1, c2 = st.columns(2)
-        for i, (model_name, model_func) in enumerate(model_ui.items()):
-            if i % 2 == 0:
-                with c1.expander(model_name):
-                    model_func()
-            else:
-                with c2.expander(model_name):
-                    model_func()
+
+        c1, c2 = st.container(border=True).columns(2)
+        model_group = "classifiers" if st.session_state['task'] == 'Classification' else "regressors"
+        for i, (model_name, model_ui_func) in enumerate(model_ui.items()):
+            c = c1 if i % 2 == 0 else c2
+            with c.expander(model_name):
+                model_ui_func()
 
 
 # Visualizations
-# with tab4:
-#     st.header("Visualizations")
+with tab4:
+    st.header("Visualizations")
+    if st.session_state.X is None or st.session_state.Y is None:
+        st.warning("Please upload a dataset in the 'Dataset Overview' tab.")
+    elif st.session_state["cv"] is None:
+        st.warning("Please apply a resampling technique in the 'Resampling Techniques' tab.")
+    else:
+        if st.session_state['task'] == 'Classification' and st.session_state['classifiers'] == {}:
+            st.warning("Please train a classifier in the 'ML Models' tab.")
+        elif st.session_state['task'] == 'Regression' and st.session_state['regressors'] == {}:
+            st.warning("Please train a regressor in the 'ML Models' tab.")
+        else:
+            if st.button("Generate Scores"):
+                if st.session_state['task'] == 'Classification':
+                    models = st.session_state['classifiers']
+                    try:
+                        for model_name, model in models.items():
+                            scores = cross_val_score(model, st.session_state['X'], st.session_state['Y'], cv=st.session_state["cv"], scoring='accuracy').mean()
+                            st.session_state['classif_scores'][model_name] = scores
+                    except ValueError as e:
+                        print(e)
+                else:
+                    models = st.session_state['regressors']
+                    try:
+                        for model_name, model in models.items():
+                            scores = cross_val_score(model, st.session_state['X'], st.session_state['Y'], cv=st.session_state["cv"], scoring='neg_mean_squared_error').mean()
+                            scores = -scores
+                            st.session_state['regress_scores'][model_name] = scores
+                    except ValueError as e:
+                        print(e)
+
+            if st.session_state['task'] == 'Classification':
+                st.write("Classification Scores:")
+                fig = px.bar(x=list(st.session_state['classif_scores'].keys()), y=list(st.session_state['classif_scores'].values()), labels={'x':'Model', 'y':'Accuracy Score'}, title='Classification Scores')
+                st.plotly_chart(fig)
+
+            else:
+                st.write("Regression Scores:")
+                fig = px.bar(x=list(st.session_state['regress_scores'].keys()), y=list(st.session_state['regress_scores'].values()), labels={'x':'Model', 'y':'MSE Score'}, title='Regression Scores')
+                st.plotly_chart(fig)
 #     st.write("Generate plots and insights here.")
 
 #     if st.session_state['task'] == 'Classification':
