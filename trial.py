@@ -288,7 +288,7 @@ with tab4:
                     models = st.session_state['regressors']
                     try:
                         for model_name, model in models.items():
-                            scores = cross_val_score(model, st.session_state['X'], st.session_state['Y'], cv=st.session_state["cv"], scoring='neg_mean_squared_error').mean()
+                            scores = cross_val_score(model, st.session_state['X'], st.session_state['Y'], cv=st.session_state["cv"], scoring='neg_mean_absolute_error').mean()
                             scores = -scores
                             st.session_state['regress_scores'][model_name] = scores
                     except ValueError as e:
@@ -299,10 +299,27 @@ with tab4:
                 fig = px.bar(x=list(st.session_state['classif_scores'].keys()), y=list(st.session_state['classif_scores'].values()), labels={'x':'Model', 'y':'Accuracy Score'}, title='Classification Scores')
                 st.plotly_chart(fig)
 
+                best_model = max(st.session_state['classif_scores'], key=st.session_state['classif_scores'].get)
+                st.write(f"Best Model: {best_model} with accuracy score of {st.session_state['classif_scores'][best_model]}")
+
             else:
                 st.write("Regression Scores:")
-                fig = px.bar(x=list(st.session_state['regress_scores'].keys()), y=list(st.session_state['regress_scores'].values()), labels={'x':'Model', 'y':'MSE Score'}, title='Regression Scores')
+                fig = px.bar(x=list(st.session_state['regress_scores'].keys()), y=list(st.session_state['regress_scores'].values()), labels={'x':'Model', 'y':'MAE Score'}, title='Regression Scores')
                 st.plotly_chart(fig)
+
+                best_model = min(st.session_state['regress_scores'], key=st.session_state['regress_scores'].get)
+                st.write(f"Best Model: {best_model}, with MAE score of {st.session_state['regress_scores'][best_model]}")
+
+            st.write("Save best model")
+            if st.button("Save Best Model"):
+                if st.session_state['task'] == 'Classification':
+                    model = st.session_state['classifiers'][best_model]
+                else:
+                    model = st.session_state['regressors'][best_model]
+                joblib.dump(model.fit(st.session_state["X"], st.session_state["Y"]), f"models/{best_model}.joblib")
+                st.success("Best model saved successfully.")
+
+
 #     st.write("Generate plots and insights here.")
 
 #     if st.session_state['task'] == 'Classification':
