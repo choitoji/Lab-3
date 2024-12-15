@@ -62,12 +62,11 @@ if "regress_scores" not in st.session_state:
     st.session_state["regress_scores"] = {}
 
 # Tabs for separating functionalities
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Dataset Overview",
     "Resampling Techniques",
     "ML Model Training",
     "Visualizations",
-    "Model Comparison",
     "Prediction"
 ])
 
@@ -399,12 +398,7 @@ with tab4:
 #                 st.pyplot(fig)
 
 
-# Model Comparison
 # with tab5:
-#     st.header("Model Comparison")
-#     st.write("Compare model performances here.")
-
-# with tab6:
 #     st.header("Prediction")
 #     st.write("Predict using trained models.")
 
