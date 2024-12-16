@@ -77,12 +77,6 @@ with tab1:
     if uploaded_file is not None:
         # Load the dataset
         df = pd.read_csv(uploaded_file)
-
-        # development purposes only, remove later ----------------
-        df = df.sample(frac=1).reset_index(drop=True)
-        df = df.head(100)
-        # --------------------------------------------------------
-
         st.write("Dataset Preview:")
 
         # Drop any columns that have all missing values
@@ -128,17 +122,20 @@ with tab1:
             if 'diagnosis' not in df.columns:
                 st.error("The dataset must contain a 'diagnosis' column for classification.")
             else:
-                # Preparing Data
-                le = LabelEncoder()
-                df['diagnosis'] = le.fit_transform(df['diagnosis'])  # M -> 1, B -> 0
-                st.session_state['label_encoder'] = le  # Save encoder in session state
-
-                if le is not None:
-                    label_mapping = {str(class_label): int(encoded_label) for class_label, encoded_label in zip(le.classes_, le.transform(le.classes_))}
-                    st.write("Label Mapping (Original -> Encoded):", label_mapping)
+                # Check if 'diagnosis' is already numeric (mapped to 0 and 1)
+                if pd.api.types.is_numeric_dtype(df['diagnosis']):
+                    # Assume it's already mapped correctly to 0 and 1
+                    st.write("The 'diagnosis' column is already numeric (0 for Benign, 1 for Malignant).")
                 else:
-                    st.warning("Label Encoder is not available. Ensure the dataset has been preprocessed.")
-                            
+                    # Explicit mapping of diagnosis to integers
+                    unexpected_values = df[~df['diagnosis'].isin(['M', 'B'])]['diagnosis'].unique()
+                    if len(unexpected_values) > 0:
+                        st.error(f"Unexpected values found in 'diagnosis': {unexpected_values}. Ensure the column contains only 'M' or 'B'.")
+                    else:
+                        df['diagnosis'] = df['diagnosis'].map({'M': 1, 'B': 0})  # M -> 1, B -> 0
+                        st.session_state['label_encoder'] = {'M': 1, 'B': 0}  # Save mapping in session state
+
+                # Preparing the data
                 X = df.drop(columns=['diagnosis']).values
                 Y = df['diagnosis'].values
                 st.session_state['X'] = X
@@ -299,7 +296,7 @@ with tab4:
                 st.plotly_chart(fig)
 
                 best_model = max(st.session_state['classif_scores'], key=st.session_state['classif_scores'].get)
-                st.write(f"Best Model: {best_model} with accuracy score of {st.session_state['classif_scores'][best_model]}")
+                st.write(f"Best Model: {best_model} with accuracy score of {st.session_state['classif_scores'][best_model]* 100:.2f}%")
 
             else:
                 st.write("Regression Scores:")
@@ -307,7 +304,7 @@ with tab4:
                 st.plotly_chart(fig)
 
                 best_model = min(st.session_state['regress_scores'], key=st.session_state['regress_scores'].get)
-                st.write(f"Best Model: {best_model}, with MAE score of {st.session_state['regress_scores'][best_model]}")
+                st.write(f"Best Model: {best_model}, with MAE score of {st.session_state['regress_scores'][best_model]:.2f}%")
 
             st.write("Save best model")
             if st.button("Save Best Model"):
@@ -315,139 +312,101 @@ with tab4:
                     model = st.session_state['classifiers'][best_model]
                 else:
                     model = st.session_state['regressors'][best_model]
-                joblib.dump(model.fit(st.session_state["X"], st.session_state["Y"]), f"models/{best_model}.joblib")
+                joblib.dump(model.fit(st.session_state["X"], st.session_state["Y"]), f"models/{best_model}({st.session_state['task']}).joblib")
                 st.success("Best model saved successfully.")
 
+with tab5:
+    st.header("Prediction")
+    st.write("Predict using trained models.")
 
-#     st.write("Generate plots and insights here.")
+    st.subheader("Upload a Saved Model for Prediction")
+    uploaded_model = st.file_uploader("Upload your model (joblib format)", type=["joblib"], key="model_upload")
 
-#     if st.session_state['task'] == 'Classification':
-#         if 'model' not in st.session_state or 'X' not in st.session_state or 'Y' not in st.session_state:
-#             st.warning("Please train a model and split the data in the 'ML Models' tab.")
-#         else:
-#             X = st.session_state['X']
-#             Y = st.session_state['Y']
-#             model = st.session_state['model']
+    if uploaded_model is not None:
+        model = joblib.load(uploaded_model)
+        st.write("Model Loaded Successfully!")
 
-#             # Generate predictions
-#             predictions = model.predict(X)
+        # Fetch the feature count from the trained model
+        try:
+            n_features = model.n_features_in_
+        except AttributeError:
+            st.error("Model does not have attribute `n_features_in_`. Ensure it is a Scikit-learn model.")
 
-#             # Retrieve label encoder and decode labels
-#             if 'label_encoder' in st.session_state:
-#                 le = st.session_state['label_encoder']
-#                 decoded_predictions = le.inverse_transform(predictions)  # Decode predictions
-#                 decoded_Y = le.inverse_transform(Y)  # Decode true labels
-#                 class_labels = le.classes_  # ['B', 'M']
-#             else:
-#                 # Fallback if LabelEncoder is not found
-#                 decoded_predictions = predictions
-#                 decoded_Y = Y
-#                 class_labels = np.unique(Y)
+        if st.session_state['task'] == 'Classification':
+            # Input fields for breast cancer prediction based on the provided dataset headers
+            st.subheader("Input Sample Data for Breast Cancer Prediction")
 
-#             # Classification Metrics
-#             st.subheader("Classification Metrics")
-#             accuracy = accuracy_score(decoded_Y, decoded_predictions)
-#             log_loss_value = log_loss(decoded_Y, model.predict_proba(X))
-#             st.write(f"Classification Accuracy: {accuracy * 100:.2f}%")
-#             st.write(f"Logarithmic Loss: {log_loss_value:.2f}")
+            # Map input features from the dataset
+            input_features = [
+                "radius_mean", "texture_mean", "perimeter_mean", "area_mean",
+                "smoothness_mean", "compactness_mean", "concavity_mean", 
+                "concave points_mean", "symmetry_mean", "fractal_dimension_mean",
+                # Add placeholders for missing features
+                *(f"feature_{i}" for i in range(n_features - 10))  # Placeholder names
+            ]
 
-#             # Confusion Matrix
-#             st.subheader("Confusion Matrix")
-#             confusion_mat = confusion_matrix(decoded_Y, decoded_predictions, labels=class_labels)
-#             confusion_df = pd.DataFrame(
-#                 confusion_mat,
-#                 index=[f"True {label}" for label in class_labels],
-#                 columns=[f"Pred {label}" for label in class_labels]
-#             )
-#             st.write(confusion_df)
+            # Dynamically create input fields for the required features
+            input_data = []
+            for feature in input_features[:10]:  # Adjusted for known dataset headers
+                input_data.append(st.number_input(f"{feature}", value=0.0, step=0.1))
+            input_data += [0] * (n_features - 10)  # Add placeholders for extra features
 
-#             # Classification Report in Tabular Form
-#             st.subheader("Classification Report")
-#             report = classification_report(
-#                 decoded_Y, decoded_predictions, output_dict=True, target_names=class_labels
-#             )
-#             report_df = pd.DataFrame(report).transpose()
+            input_data = np.array([input_data])
 
-#             # Ensure all numeric columns are of type float for compatibility
-#             numeric_cols = report_df.select_dtypes(include=['number']).columns
-#             report_df[numeric_cols] = report_df[numeric_cols].astype(float)
+            # Predict using the trained model
+            if st.button("Predict"):
+                prediction = model.predict(input_data)
 
-#             # Ensure all non-numeric columns are of type string for compatibility
-#             non_numeric_cols = report_df.select_dtypes(exclude=['number']).columns
-#             report_df[non_numeric_cols] = report_df[non_numeric_cols].astype(str)
+                # Decode prediction using the explicit mapping
+                if prediction[0] == 1:
+                    decoded_prediction = "Malignant"
+                elif prediction[0] == 0:
+                    decoded_prediction = "Benign"
+                else:
+                    decoded_prediction = "Unknown"
 
-#             # Reset index to avoid serialization issues
-#             report_df.reset_index(inplace=True)
+                st.subheader("Prediction Result")
+                st.write(f"The predicted diagnosis is: **{decoded_prediction}**")
 
-#             # Display the DataFrame in Streamlit
-#             st.dataframe(report_df)
+        elif st.session_state['task'] == 'Regression':
+            # Input fields for PM2.5 prediction based on the provided dataset headers
+            st.subheader("Input Sample Data for PM2.5 Prediction")
 
-#             # ROC Curve for binary classification
-#             if len(np.unique(Y)) == 2:  # Ensure binary classification for ROC AUC
-#                 st.subheader("Receiver Operating Characteristic (ROC) Curve")
-#                 roc_auc = roc_auc_score(Y, model.predict_proba(X)[:, 1])
-#                 st.write(f"Area Under ROC Curve (AUC): {roc_auc:.2f}")
-#                 fpr, tpr, _ = roc_curve(Y, model.predict_proba(X)[:, 1])
-#                 fig, ax = plt.subplots()
-#                 ax.plot(fpr, tpr, label='ROC Curve')
-#                 ax.plot([0, 1], [0, 1], 'k--', label='Random Guess')
-#                 ax.set_xlabel('False Positive Rate')
-#                 ax.set_ylabel('True Positive Rate')
-#                 ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-#                 ax.legend()
-#                 st.pyplot(fig)
+            # Map input features from the dataset
+            input_features = [
+                "DEWP", "TEMP", "PRES", "cbwd", "Iws", "Is", "Ir"
+            ]
 
+            # Replace date and hour inputs with a calendar and clock
+            st.write("Select Date and Time:")
+            date_time = st.date_input("Date", key="date_input")
+            time = st.time_input("Time", key="time_input")
 
-# with tab5:
-#     st.header("Prediction")
-#     st.write("Predict using trained models.")
+            # Dynamically create input fields for the other features
+            input_data = []
+            for feature in input_features:
+                if feature == "cbwd":  # For categorical wind direction
+                    cbwd_map = {"NW": 1, "NE": 2, "SW": 3, "SE": 4}
+                    cbwd_input = st.selectbox(f"{feature} (Wind Direction)", options=list(cbwd_map.keys()), index=0)
+                    input_data.append(cbwd_map[cbwd_input])  # Map wind direction to numeric values
+                else:
+                    input_data.append(st.number_input(f"{feature}", value=0.0, step=0.1))
 
-#     st.subheader("Upload a Saved Model for Prediction")
-#     uploaded_model = st.file_uploader("Upload your model (joblib format)", type=["joblib"], key="model_upload")
+            # Combine date and time into separate features
+            input_data.insert(0, date_time.year)
+            input_data.insert(1, date_time.month)
+            input_data.insert(2, date_time.day)
+            input_data.insert(3, time.hour)
+            input_data.insert(4, time.minute)
 
-#     if uploaded_model is not None:
-#         model = joblib.load(uploaded_model)
-#         st.write("Model Loaded Successfully!")
+            # Prepare the input array
+            input_data = np.array([input_data])
 
-#         # Predict using entire dataset (X)
-#         if uploaded_file is not None:
-#             # Input fields for breast cancer prediction
-#             st.subheader("Input Sample Data for Breast Cancer Prediction")
-
-#             # Feature input fields
-#             radius_mean = st.number_input("Radius Mean", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
-#             texture_mean = st.number_input("Texture Mean", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
-#             perimeter_mean = st.number_input("Perimeter Mean", min_value=0.0, max_value=1000.0, value=0.0, step=0.1)
-#             area_mean = st.number_input("Area Mean", min_value=0.0, max_value=5000.0, value=0.0, step=0.1)
-#             smoothness_mean = st.number_input("Smoothness Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-#             compactness_mean = st.number_input("Compactness Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-#             concavity_mean = st.number_input("Concavity Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-#             concave_points_mean = st.number_input("Concave Points Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-#             symmetry_mean = st.number_input("Symmetry Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-#             fractal_dimension_mean = st.number_input("Fractal Dimension Mean", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
-
-#             # Combine input features into a single array
-#             input_data = np.array([[
-#                 radius_mean, texture_mean, perimeter_mean, area_mean, smoothness_mean,
-#                 compactness_mean, concavity_mean, concave_points_mean, symmetry_mean,
-#                 fractal_dimension_mean
-#             ]])
-
-#             # Predict using the trained model
-#             if st.button("Predict"):
-#                 if 'model' in st.session_state:
-#                     model = st.session_state['model']
-#                     prediction = model.predict(input_data)
-                    
-#                     # Decode prediction if label encoder is available
-#                     if 'label_encoder' in st.session_state:
-#                         le = st.session_state['label_encoder']
-#                         decoded_prediction = le.inverse_transform(prediction)[0]  # Malignant (M) or Benign (B)
-#                     else:
-#                         decoded_prediction = prediction[0]  # Fallback to numeric
-
-#                     st.subheader("Prediction Result")
-#                     st.write(f"The predicted diagnosis is: {decoded_prediction}")
-#                 else:
-#                     st.warning("Please train a model in the 'ML Models' tab first.")
-
+            # Predict using the trained model
+            if st.button("Predict"):
+                try:
+                    prediction = model.predict(input_data)
+                    st.subheader("Prediction Result")
+                    st.write(f"The predicted PM2.5 level is: **{prediction[0]:.2f}**")
+                except ValueError as e:
+                    st.error(f"Prediction failed: {e}")
